@@ -1,72 +1,72 @@
 # String EOL Setter for C/C++
 
-Uno strumento robusto in Python per normalizzare i terminatori di riga (`\n` <-> `\r\n`) esclusivamente all'interno delle stringhe letterali contenute in chiamate a funzione o macro C/C++.
+A robust Python tool to normalize line-ending terminators (`\n` <-> `\r\n`) exclusively within string literals contained in C/C++ function calls or macros.
 
-## 💡 Perché questo tool?
+## 💡 Why This Tool?
 
-A differenza di un semplice "cerca e sostituisci" globale, questo script:
-- **Analizza il codice (Lexing):** Ignora stringhe all'interno di commenti (singola riga `//` o blocco `/* ... */`) e costanti di carattere (es. `'\n'`).
-- **Targeting Mirato:** Agisce solo sulle stringhe passate come argomenti a funzioni (es. `printf`, `fprintf`, `LOG`, ecc.).
-- **Correzione Errori:** Gestisce e corregge automaticamente il typo comune `\n\r` normalizzandolo in `\r\n` (o `\n`).
-- **Performance:** Ottimizzato per codebase di grandi dimensioni grazie all'uso della ricerca binaria (`bisect`) per il calcolo delle righe.
+Unlike a simple "find and replace" globally, this script:
+- **Analyzes Code (Lexing):** Ignores strings within comments (single-line `//` or block `/* ... */`) and character constants (e.g., `'\n'`).
+- **Targeted Targeting:** Acts only on strings passed as arguments to functions (e.g., `printf`, `fprintf`, `LOG`, etc.).
+- **Error Correction:** Automatically handles and corrects the common typo `\n\r`, normalizing it to `\r\n` (or `\n`).
+- **Performance:** Optimized for large codebases thanks to binary search (`bisect`) for line number calculations.
 
-## 🚀 Caratteristiche
+## 🚀 Features
 
-- ✅ Conversione bidirezionale: `--to-crlf` o `--to-lf`.
-- ✅ Modalità `--dry-run` per vedere le modifiche senza applicarle.
-- ✅ Filtro per estensioni file (es. `.c`, `.h`, `.cpp`).
-- ✅ Filtro per nomi funzione specifici (es. `--only PRINTF`).
-- ✅ Esclusione intelligente delle cartelle (es. `build`, `.git`).
-- ✅ Supporto per encoding UTF-8 e Latin-1.
+- ✅ Bidirectional conversion: `--to-crlf` or `--to-lf`.
+- ✅ `--dry-run` mode to see changes without applying them.
+- ✅ Filter by file extensions (e.g., `.c`, `.h`, `.cpp`).
+- ✅ Filter by specific function names (e.g., `--only PRINTF`).
+- ✅ Smart folder exclusion (e.g., `build`, `.git`).
+- ✅ Support for UTF-8 and Latin-1 encodings.
 
-## 🛠 Installazione
+## 🛠 Installation
 
-Non sono richieste dipendenze esterne. È sufficiente avere Python 3.6+ installato.
+No external dependencies required. Just have Python 3.6+ installed.
 
 ```bash
-git clone [https://github.com/katte82/c_string-eol-setter.git](https://github.com/katte82/c_string-eol-setter.git)
+git clone https://github.com/katte82/c_string-eol-setter.git
 cd string-eol-setter
 ```
 
-## 📖 Utilizzo
+## 📖 Usage
 
-### Esempi Comuni
+### Common Examples
 
-**Convertire tutte le stringhe in `\r\n` per i file .c e .h nella cartella corrente:**
+**Convert all strings to `\r\n` for .c and .h files in the current directory:**
 ```bash
-python main.py --to-crlf . --ext c --ext h
+python c_string_eol_setter.py --to-crlf . --ext c --ext h
 ```
 
-**Convertire in `\n` solo all'interno delle macro `PRINTF`, mostrando solo un'anteprima:**
+**Convert to `\n` only inside the `PRINTF` macro, showing only a preview:**
 ```bash
-python main.py --to-lf --only PRINTF --dry-run
+python c_string_eol_setter.py --to-lf --only PRINTF --dry-run
 ```
 
-**Eseguire su una cartella specifica escludendo i file di output:**
+**Run on a specific folder excluding output files:**
 ```bash
-python main.py --to-crlf ./src --exclude out --exclude temp
+python c_string_eol_setter.py --to-crlf ./src --exclude out --exclude temp
 ```
 
-### Argomenti CLI
+### CLI Arguments
 
-| Argomento | Descrizione |
+| Argument | Description |
 | :--- | :--- |
-| `root` | Cartella radice da scansionare (default: `.`) |
-| `--to-crlf` | Converte `\n` in `\r\n`. |
-| `--to-lf` | Converte `\r\n` in `\n`. |
-| `--dry-run` | Mostra le modifiche pianificate senza scrivere sui file. |
-| `--ext <ext>` | Include solo file con l'estensione indicata (es. `c`). Ripetibile. |
-| `--exclude <dir>` | Cartelle da ignorare durante la scansione. |
-| `--only <name>` | Applica le modifiche solo alle chiamate della funzione/macro specificata. |
+| `root` | Root folder to scan (default: `.`) |
+| `--to-crlf` | Converts `\n` to `\r\n`. |
+| `--to-lf` | Converts `\r\n` to `\n`. |
+| `--dry-run` | Shows planned changes without writing to files. |
+| `--ext <ext>` | Include only files with the specified extension (e.g., `c`). Repeatable. |
+| `--exclude <dir>` | Folders to ignore during scanning. |
+| `--only <name>` | Apply changes only to the specified function/macro calls. |
 
-## 🛡 Casi Gestiti
+## 🛡 Handled Cases
 
-Il tool è progettato per gestire in modo sicuro:
-- **Commenti:** `printf("ciao\n"); // questo \n non viene toccato`
-- **Typo storici:** `\n\r` viene rilevato e trasformato correttamente in base alla modalità scelta (es. `\n\r` -> `\r\n`).
-- **Escape multipli:** Gestisce correttamente sequenze come `\\n` (backslash letterale seguito da n), evitando sostituzioni errate.
+The tool is designed to safely handle:
+- **Comments:** `printf("hello\n"); // this \n is not touched`
+- **Historical Typos:** `\n\r` is detected and transformed correctly based on the chosen mode (e.g., `\n\r` -> `\r\n`).
+- **Multiple Escapes:** Correctly handles sequences like `\\n` (literal backslash followed by n), avoiding incorrect substitutions.
 
-## 📄 Licenza
+## 📄 License
 
-Questo progetto è rilasciato sotto licenza MIT.
+This project is released under the MIT License.
 ```

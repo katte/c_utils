@@ -1,79 +1,79 @@
 # C/C++ Brace Formatter
 
-Uno strumento intelligente in Python per normalizzare la posizione delle parentesi graffe negli statement di controllo (`if`, `else`, `for`, `while`, `switch`). 
+An intelligent Python tool to normalize the positioning of braces in control statements (`if`, `else`, `for`, `while`, `switch`).
 
-A differenza di semplici sostituzioni testuali, questo script utilizza un **Lexer (analizzatore lessicale)** per identificare i componenti del codice, garantendo che le modifiche non tocchino mai il contenuto di stringhe, commenti o macro.
+Unlike simple text substitutions, this script uses a **Lexer (lexical analyzer)** to identify code components, ensuring that changes never touch the contents of strings, comments, or macros.
 
-## 🛠 Funzionalità
+## 🛠 Features
 
-- **Supporto Multi-Stile**: Passa dallo stile "K&R" (graffa sulla stessa riga) allo stile "Allman" (graffa su riga nuova) e viceversa.
-- **Analisi Sicura**: Riconosce i commenti (`//` e `/* */`) tra la keyword e la graffa, preservandoli o spostandoli correttamente.
-- **Indentazione Automatica**: Nella modalità `--new-line`, calcola l'indentazione corretta per posizionare la graffa esattamente sotto la keyword di riferimento.
-- **Targeting Esteso**: Gestisce non solo `if/else`, ma anche cicli `for`, `while` e blocchi `switch`.
+- **Multi-Style Support**: Switch from "K&R" style (brace on the same line) to "Allman" style (brace on a new line) and vice versa.
+- **Safe Analysis**: Recognizes comments (`//` and `/* */`) between the keyword and brace, preserving or moving them correctly.
+- **Automatic Indentation**: In `--new-line` mode, calculates the correct indentation to place the brace exactly under the reference keyword.
+- **Extended Targeting**: Handles not only `if/else`, but also loops `for`, `while` and `switch` blocks.
 
-## 📖 Modalità di Utilizzo
+## 📖 Usage Modes
 
-### 1. Stile "Same Line" (K&R / Java)
-Trasforma il codice portando la graffa sulla stessa riga della condizione.
+### 1. "Same Line" Style (K&R / Java)
+Transforms code by moving the brace to the same line as the condition.
 
-**Comando:**
+**Command:**
 ```bash
-python brace_formatter.py . --ext c --same-line
+python c_brace_formatter.py . --ext c --same-line
 ```
 
-**Esempio di trasformazione:**
+**Example transformation:**
 ```c
-// PRIMA
-if (condizione)
+// BEFORE
+if (condition)
 {
     ...
 }
-// DOPO
-if (condizione) {
+// AFTER
+if (condition) {
     ...
 }
 ```
 
-### 2. Stile "New Line" (Allman / BSD)
-Trasforma il codice portando la graffa a capo, allineata verticalmente con lo statement.
+### 2. "New Line" Style (Allman / BSD)
+Transforms code by moving the brace to a new line, aligned vertically with the statement.
 
-**Comando:**
+**Command:**
 ```bash
-python brace_formatter.py . --ext c --new-line
+python c_brace_formatter.py . --ext c --new-line
 ```
 
-**Esempio di trasformazione:**
+**Example transformation:**
 ```c
-// PRIMA
-if (condizione) {
+// BEFORE
+if (condition) {
     ...
 }
-// DOPO
-if (condizione)
+// AFTER
+if (condition)
 {
     ...
 }
 ```
 
-## ⚙️ Argomenti CLI
+## ⚙️ CLI Arguments
 
-| Argomento | Descrizione |
+| Argument | Description |
 | :--- | :--- |
-| `root` | Cartella radice da scansionare (default: `.`). |
-| `--same-line` | **Obbligatorio** (o `--new-line`): Porta le graffe sulla riga della condizione. |
-| `--new-line` | **Obbligatorio** (o `--same-line`): Porta le graffe sulla riga successiva. |
-| `--dry-run` | Mostra le modifiche a console senza scrivere sui file. |
-| `--ext <ext>` | Filtra per estensione (es. `--ext c --ext h`). |
-| `--exclude <dir>` | Ignora cartelle specifiche (default: `.git`, `build`, `out`). |
+| `root` | Root folder to scan (default: `.`). |
+| `--same-line` | **Required** (or `--new-line`): Move braces to the condition line. |
+| `--new-line` | **Required** (or `--same-line`): Move braces to the next line. |
+| `--dry-run` | Shows changes to console without writing to files. |
+| `--ext <ext>` | Filter by extension (e.g., `--ext c --ext h`). |
+| `--exclude <dir>` | Ignore specific folders (default: `.git`, `build`, `out`). |
 
-## 🛡 Sicurezza e Casi Limite
+## 🛡 Safety and Edge Cases
 
-Lo script è progettato per interrompere la formattazione di un singolo blocco se rileva situazioni ambigue, come:
-- **Commenti in linea (`//`)**: Se un commento impedisce di portare una graffa sulla stessa riga senza "commentarla", lo script salta la modifica.
-- **Macro complesse**: Se tra la tonda e la graffa sono presenti token non riconosciuti (es. macro multiriga), il blocco viene ignorato per sicurezza.
-- **Stringhe**: Le graffe contenute all'interno di stringhe (es. `printf("{");`) non vengono mai toccate.
+The script is designed to skip formatting a single block if it detects ambiguous situations, such as:
+- **Inline Comments (`//`)**: If a comment prevents moving a brace to the same line without "commenting it out", the script skips the change.
+- **Complex Macros**: If non-recognized tokens (e.g., multi-line macros) appear between the parenthesis and brace, the block is skipped for safety.
+- **Strings**: Braces inside strings (e.g., `printf("{");`) are never touched.
 
-## 📄 Licenza
+## 📄 License
 
-Rilasciato sotto licenza MIT.
+Released under the MIT License.
 ```

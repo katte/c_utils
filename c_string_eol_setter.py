@@ -6,12 +6,12 @@ import bisect
 
 
 def get_newline_indices(text):
-    """Pre-calcola gli indici di tutti i newline nel testo."""
+    """Pre-calculates indices of all newlines in the text."""
     return [i for i, c in enumerate(text) if c == '\n']
 
 
 def fast_line_of_pos(newline_indices, pos):
-    """Usa la ricerca binaria per trovare la riga in tempo O(log N)."""
+    """Uses binary search to find the line number in O(log N) time."""
     return bisect.bisect_right(newline_indices, pos) + 1
 
 
@@ -87,7 +87,7 @@ def transform_escaped_newlines(s, mode):
     while i < n:
         if s[i] == '\\':
 
-            # --- GESTIONE TYPO \n\r (LFCR) ---
+            # --- HANDLE TYPO \n\r (LFCR) ---
             if i + 3 < n and s[i:i+4] == '\\n\\r':
                 if mode == 'to-crlf':
                     out.extend(['\\', 'r', '\\', 'n'])
@@ -110,13 +110,13 @@ def transform_escaped_newlines(s, mode):
                     continue
 
             elif mode == 'to-lf':
-                # Converte \r\n in \n
+                # Convert \r\n to \n
                 if i + 3 < n and s[i:i+4] == '\\r\\n':
                     out.extend(['\\', 'n'])
                     changed = True
                     i += 4
                     continue
-                # Converte \r isolato in \n
+                # Convert standalone \r to \n
                 if i + 1 < n and s[i + 1] == 'r':
                     out.extend(['\\', 'n'])
                     changed = True
@@ -140,15 +140,14 @@ def transform_escaped_newlines(s, mode):
 
 def process_calls(text, mode, only_names=None, exclude_names=None):
     """
-    Scansiona il testo C/C++ e trasforma gli escape di newline nelle stringhe
-    che si trovano dentro chiamate a funzione/macro corrispondenti a only_names.
+    Scans C/C++ text and transforms newline escapes in strings found inside
+    function/macro calls corresponding to only_names.
 
-    FIX PRINCIPALE: usa uno stack delle chiamate (call_stack) invece di
-    ricordare solo l'ultimo identificatore. In questo modo una stringa dentro
-    usb_echo("...\r\n") annidato in un if(...) viene attribuita correttamente
-    a usb_echo e non a if.
+    MAIN FIX: uses a call stack (call_stack) instead of just remembering the
+    last identifier. This way a string inside usb_echo("...\r\n") nested in an
+    if(...) is correctly attributed to usb_echo and not to if.
 
-    exclude_names: insieme di nomi di funzione/macro da ignorare esplicitamente.
+    exclude_names: set of function/macro names to explicitly ignore.
     """
     n = len(text)
     i = 0
@@ -158,17 +157,17 @@ def process_calls(text, mode, only_names=None, exclude_names=None):
 
     newline_indices = get_newline_indices(text)
 
-    # Stack degli identificatori aperti: ogni elemento è il nome della funzione/
-    # keyword il cui '(' non è ancora stato chiuso dal ')' corrispondente.
-    # Es: if ( usb_echo( "str" ) )
+    # Stack of open identifiers: each element is the name of the function/
+    # keyword whose '(' has not yet been closed by the corresponding ')'.
+    # E.g: if ( usb_echo( "str" ) )
     #      ^--- depth 1      ^--- depth 2
-    # call_stack = ['if', 'usb_echo']  quando siamo dentro la stringa
+    # call_stack = ['if', 'usb_echo']  when we are inside the string
     call_stack = []
 
     while i < n:
         c = text[i]
 
-        # --- Commenti ---
+        # --- Comments ---
         if c == '/' and i + 1 < n:
             if text[i + 1] == '/':
                 i = skip_line_comment(text, i + 2)
@@ -177,7 +176,7 @@ def process_calls(text, mode, only_names=None, exclude_names=None):
                 i = skip_block_comment(text, i)
                 continue
 
-        # --- Char literal ---
+        # --- Character literal ---
         if c == '\'':
             i = skip_char_literal(text, i)
             continue
@@ -189,7 +188,7 @@ def process_calls(text, mode, only_names=None, exclude_names=None):
                 i += 1
                 continue
 
-            # Siamo dentro una chiamata? Il nome corretto è il top dello stack.
+            # Are we inside a call? The correct name is the top of the stack.
             if call_stack:
                 current_func = call_stack[-1]
                 included = (only_names is None or current_func in only_names)
@@ -209,24 +208,24 @@ def process_calls(text, mode, only_names=None, exclude_names=None):
             i = s['full_end']
             continue
 
-        # --- Parentesi aperta senza identificatore precedente ---
-        # (es: cast, espressione aritmetica)
+        # --- Open parenthesis without preceding identifier ---
+        # (e.g: cast, arithmetic expression)
         if c == '(':
-            call_stack.append('')   # slot anonimo per mantenere il depth
+            call_stack.append('')   # anonymous slot to maintain depth
             i += 1
             continue
 
-        # --- Parentesi chiusa: pop dello stack ---
+        # --- Closing parenthesis: pop from stack ---
         if c == ')':
             if call_stack:
                 popped = call_stack.pop()
-                # Conta come "call trovata" solo se era un nome reale
+                # Count as "call found" only if it was a real name
                 if popped and (only_names is None or popped in only_names):
                     matched_calls_total += 1
             i += 1
             continue
 
-        # --- Identificatore ---
+        # --- Identifier ---
         if not is_ident_start(c):
             i += 1
             continue
@@ -237,19 +236,19 @@ def process_calls(text, mode, only_names=None, exclude_names=None):
             i += 1
         ident = text[ident_start:i]
 
-        # Salta spazi dopo l'identificatore
+        # Skip spaces after identifier
         j = i
         while j < n and text[j].isspace():
             j += 1
 
         if j < n and text[j] == '(':
-            # È una chiamata: push del nome nello stack
+            # It's a call: push the name onto the stack
             call_stack.append(ident)
-            i = j + 1          # salta la '('
+            i = j + 1          # skip the '('
         else:
-            i = j              # identificatore semplice, avanza
+            i = j              # simple identifier, advance
 
-    # Applica le sostituzioni in ordine per non spostare gli indici
+    # Apply replacements in order to avoid shifting indices
     if not replacements:
         return text, False, matched_calls_total, 0, planned
 
@@ -276,50 +275,50 @@ def emit(line, report_lines=None, stream=None):
 
 def iter_targets(root):
     if not root.exists():
-        raise FileNotFoundError(f'Percorso non trovato: {root}')
+        raise FileNotFoundError(f'Path not found: {root}')
     if root.is_file():
         yield root
         return
     if root.is_dir():
         yield from root.rglob('*')
         return
-    raise ValueError(f'Percorso non supportato: {root}')
+    raise ValueError(f'Path not supported: {root}')
 
 
 def is_excluded(path, exclude_set):
     """
-    Controlla solo le componenti di directory, non il nome del file.
-    Evita falsi positivi tipo 'build_tools/src/main.c' escluso per 'build'.
+    Checks only directory components, not the file name.
+    Avoids false positives like 'build_tools/src/main.c' excluded for 'build'.
     """
     return any(part in exclude_set for part in path.parts[:-1])
 
 
 def main():
     ap = argparse.ArgumentParser(
-        description='Converte in modo robusto gli escape \\n <-> \\r\\n nelle stringhe dentro call C/C++'
+        description='Robustly converts \\n <-> \\r\\n escapes in strings inside C/C++ calls'
     )
-    ap.add_argument('root', nargs='?', default='.', help='Cartella radice (default: directory corrente)')
+    ap.add_argument('root', nargs='?', default='.', help='Root folder (default: current directory)')
     ap.add_argument('--dry-run', action='store_true',
-                    help='Mostra solo i file che cambierebbero, senza modificarli')
+                    help='Show only files that would change, without modifying them')
     ap.add_argument('--dry-run-output', type=pathlib.Path, default=None,
-                    help='Salva il report dettagliato del dry-run in un file')
+                    help='Save detailed dry-run report to a file')
     ap.add_argument('--ext', action='append', default=[],
-                    help='Estensione da includere, es: .c, c, .h, cpp (ripetibile)')
+                    help='Extension to include, e.g: .c, c, .h, cpp (repeatable)')
     ap.add_argument('--exclude', action='append',
                     default=['.git', 'build', 'out', 'output', '.idea', '.vscode'],
-                    help='Nomi di directory da escludere (ripetibile)')
+                    help='Directory names to exclude (repeatable)')
     ap.add_argument('--only-token', action='append', default=[], dest='only_token',
-                    help='Limita ai soli nomi funzione/macro (ripetibile); se omesso, tutte le call')
+                    help='Limit to function/macro names only (repeatable); if omitted, all calls')
     ap.add_argument('--exclude-token', action='append', default=[], dest='exclude_token',
-                    help='Esclude esplicitamente un nome funzione/macro (ripetibile), es: snprintf')
+                    help='Explicitly exclude a function/macro name (repeatable), e.g: snprintf')
     ap.add_argument('--verbose', action='store_true',
-                    help='Stampa dettagli per file')
+                    help='Print details per file')
 
     group = ap.add_mutually_exclusive_group(required=True)
     group.add_argument('--to-crlf', action='store_true',
-                       help='Converte \\n in \\r\\n (e \\n\\r in \\r\\n)')
+                       help='Converts \\n to \\r\\n (and \\n\\r to \\r\\n)')
     group.add_argument('--to-lf', action='store_true',
-                       help='Converte \\r\\n in \\n (e \\n\\r in \\n, e \\r isolato in \\n)')
+                       help='Converts \\r\\n to \\n (and \\n\\r to \\n, and standalone \\r to \\n)')
 
     args = ap.parse_args()
 
@@ -390,15 +389,15 @@ def main():
             if not args.dry_run:
                 path.write_text(new_text, encoding=encoding)
 
-    tokens_str = ', '.join(sorted(found_tokens)) if found_tokens else '(nessuno)'
+    tokens_str = ', '.join(sorted(found_tokens)) if found_tokens else '(none)'
     summary = [
         '',
-        f'File scanditi:       {scanned}',
-        f'File letti:          {read_ok}',
-        f'Call trovate:        {matched_calls_total}',
-        f'Stringhe modificate: {string_replacements_total}',
-        f'File modificati:     {len(changed_files)}',
-        f'Token individuati:   {tokens_str}',
+        f'Files scanned:       {scanned}',
+        f'Files read:          {read_ok}',
+        f'Calls found:         {matched_calls_total}',
+        f'Strings modified:    {string_replacements_total}',
+        f'Files modified:      {len(changed_files)}',
+        f'Tokens identified:   {tokens_str}',
     ]
 
     for line in summary:

@@ -17,7 +17,7 @@ def is_ident_char(c):
     return c.isalnum() or c == '_'
 
 def get_indent(text, pos):
-    """Calcola l'indentazione della riga a cui appartiene 'pos'."""
+    """Calculates the indentation of the line to which 'pos' belongs."""
     line_start = text.rfind('\n', 0, pos)
     line_start = line_start + 1 if line_start != -1 else 0
     indent = []
@@ -29,7 +29,7 @@ def get_indent(text, pos):
     return ''.join(indent)
 
 def tokenize(text):
-    """Analizzatore lessicale che converte il testo in Token per una scansione sicura."""
+    """Lexical analyzer that converts text into tokens for safe scanning."""
     tokens = []
     n = len(text)
     i = 0
@@ -74,7 +74,7 @@ def tokenize(text):
             start = i
             while i < n and is_ident_char(text[i]): i += 1
             ident = text[start:i]
-            # Gestisce anche for/while/switch dato che la struttura è identica a if()
+            # Also handles for/while/switch since the structure is identical to if()
             if ident in ('if', 'for', 'while', 'switch'): tokens.append(('CTRL_PAREN', start, i))
             elif ident == 'else': tokens.append(('ELSE', start, i))
             else: tokens.append(('IDENT', start, i))
@@ -83,22 +83,22 @@ def tokenize(text):
     return tokens
 
 def generate_replacement(text, gap_start, gap_end, indent, mode):
-    """Calcola il nuovo contenuto dello spazio tra la keyword e la graffa."""
+    """Calculates the new content of the space between the keyword and the brace."""
     gap_tokens = tokenize(text[gap_start:gap_end])
-    
-    # Se il gap contiene spazzatura inattesa (es. macro multi-linea con '\'), non toccarlo
+
+    # If the gap contains unexpected garbage (e.g. multi-line macro with '\'), don't touch it
     if any(t[0] not in ('WS', 'LINE_COMMENT', 'BLOCK_COMMENT') for t in gap_tokens):
-        return None 
+        return None
 
     has_line_comment = any(t[0] == 'LINE_COMMENT' for t in gap_tokens)
     has_block_comment = any(t[0] == 'BLOCK_COMMENT' for t in gap_tokens)
     nl = '\r\n' if '\r\n' in text else '\n'
 
     if mode == 'same-line':
-        # Se c'è un commento // spostare la graffa sulla stessa riga la commenterebbe! Meglio saltare.
-        if has_line_comment: return None 
+        # If there's a // comment, moving the brace to the same line would comment it out! Better skip.
+        if has_line_comment: return None
         if not has_block_comment: return " "
-        
+
         res = " "
         for t in gap_tokens:
             if t[0] == 'BLOCK_COMMENT':
@@ -108,11 +108,11 @@ def generate_replacement(text, gap_start, gap_end, indent, mode):
     elif mode == 'new-line':
         if not gap_tokens:
             return nl + indent
-        
+
         comments = [text[gap_start+t[1]:gap_start+t[2]] for t in gap_tokens if t[0] in ('LINE_COMMENT', 'BLOCK_COMMENT')]
         if not comments:
             return nl + indent
-            
+
         out = " "
         for i, c in enumerate(comments):
             out += c
@@ -124,16 +124,16 @@ def generate_replacement(text, gap_start, gap_end, indent, mode):
 
 def process_braces(text, mode):
     tokens = tokenize(text)
-    # Filtra solo i token significativi per trovare la logica
+    # Filter only significant tokens to find the logic
     sig_tokens = [(idx, t) for idx, t in enumerate(tokens) if t[0] not in ('WS', 'LINE_COMMENT', 'BLOCK_COMMENT')]
-    
+
     replacements = []
     planned = []
     newline_indices = get_newline_indices(text)
     matched_cases = 0
 
     for i, (orig_idx, token) in enumerate(sig_tokens):
-        # 1. Trova pattern: if (...) {
+        # 1. Find pattern: if (...) {
         if token[0] == 'CTRL_PAREN':
             if i + 1 < len(sig_tokens) and sig_tokens[i+1][1][0] == 'LPAREN':
                 depth = 1
@@ -155,10 +155,10 @@ def process_braces(text, mode):
                             matched_cases += 1
                             replacements.append((gap_start, gap_end, new_gap))
                             planned.append({'func': f"{text[token[1]:token[2]]} (...) {{", 'line': fast_line_of_pos(newline_indices, gap_start), 'old': text[gap_start:gap_end], 'new': new_gap})
-        
-        # 2. Trova pattern: } else {
+
+        # 2. Find pattern: } else {
         elif token[0] == 'ELSE':
-            # Controllo all'indietro per '}' -> 'else'
+            # Check backward for '}' -> 'else'
             if i - 1 >= 0 and sig_tokens[i-1][1][0] == 'RBRACE':
                 gap_start = sig_tokens[i-1][1][2]
                 gap_end = token[1]
@@ -168,8 +168,8 @@ def process_braces(text, mode):
                     matched_cases += 1
                     replacements.append((gap_start, gap_end, new_gap))
                     planned.append({'func': "} else", 'line': fast_line_of_pos(newline_indices, gap_start), 'old': text[gap_start:gap_end], 'new': new_gap})
-            
-            # Controllo in avanti per 'else' -> '{' oppure 'else if'
+
+            # Check forward for 'else' -> '{' or 'else if'
             if i + 1 < len(sig_tokens):
                 next_token = sig_tokens[i+1][1]
                 if next_token[0] == 'LBRACE':
@@ -181,8 +181,8 @@ def process_braces(text, mode):
                         matched_cases += 1
                         replacements.append((gap_start, gap_end, new_gap))
                         planned.append({'func': "else {", 'line': fast_line_of_pos(newline_indices, gap_start), 'old': text[gap_start:gap_end], 'new': new_gap})
-                
-                # Gestione speciale per 'else if' (viene sempre unito da 1 spazio)
+
+                # Special handling for 'else if' (always joined by 1 space)
                 elif next_token[0] == 'CTRL_PAREN' and text[next_token[1]:next_token[2]] == 'if':
                     gap_start = token[2]
                     gap_end = next_token[1]
@@ -218,13 +218,13 @@ def emit(line, report_lines=None, stream=None):
 
 
 def iter_targets(root):
-    # Glob pattern: se il percorso contiene * o ? espandiamo dalla directory padre
+    # Glob pattern: if the path contains * or ?, expand from the parent directory
     root_str = str(root)
     if '*' in root_str or '?' in root_str:
         parent = root.parent
         pattern = root.name
         if not parent.is_dir():
-            raise FileNotFoundError(f'Directory non trovata: {parent}')
+            raise FileNotFoundError(f'Directory not found: {parent}')
         for match in sorted(parent.glob(pattern)):
             if match.is_file():
                 yield match
@@ -232,14 +232,14 @@ def iter_targets(root):
                 yield from match.rglob('*')
         return
     if not root.exists():
-        raise FileNotFoundError(f'Percorso non trovato: {root}')
+        raise FileNotFoundError(f'Path not found: {root}')
     if root.is_file():
         yield root
         return
     if root.is_dir():
         yield from root.rglob('*')
         return
-    raise ValueError(f'Percorso non supportato: {root}')
+    raise ValueError(f'Path not supported: {root}')
 
 
 def is_excluded(path, exclude_set):
@@ -247,20 +247,20 @@ def is_excluded(path, exclude_set):
 
 
 def main():
-    ap = argparse.ArgumentParser(description='Formatta le parentesi graffe per if/else/for/while in C/C++')
-    ap.add_argument('root', nargs='?', default='.', help='File singolo o cartella radice (default: directory corrente)')
+    ap = argparse.ArgumentParser(description='Formats braces for if/else/for/while in C/C++')
+    ap.add_argument('root', nargs='?', default='.', help='Single file or root folder (default: current directory)')
     ap.add_argument('--dry-run', action='store_true',
-                    help='Mostra solo i file che cambierebbero, senza modificarli')
+                    help='Show only files that would change, without modifying them')
     ap.add_argument('--dry-run-output', type=pathlib.Path, default=None,
-                    help='Salva il report dettagliato del dry-run in un file')
+                    help='Save detailed dry-run report to a file')
     ap.add_argument('--ext', action='append', default=[],
-                    help='Estensione da includere, es: .c, c, .h, cpp (ripetibile)')
+                    help='Extension to include, e.g: .c, c, .h, cpp (repeatable)')
     ap.add_argument('--exclude', action='append', default=['.git', 'build', 'out', 'output'],
-                    help='Nomi di directory da escludere (ripetibile)')
+                    help='Directory names to exclude (repeatable)')
 
     group = ap.add_mutually_exclusive_group(required=True)
-    group.add_argument('--same-line', action='store_true', help='Formatta come: if () { ... } else {')
-    group.add_argument('--new-line', action='store_true', help='Formatta come: if ()\\n{ ... }\\nelse\\n{')
+    group.add_argument('--same-line', action='store_true', help='Format as: if () { ... } else {')
+    group.add_argument('--new-line', action='store_true', help='Format as: if ()\\n{ ... }\\nelse\\n{')
 
     args = ap.parse_args()
     mode = 'same-line' if args.same_line else 'new-line'
@@ -315,8 +315,8 @@ def main():
 
     summary = [
         '',
-        f'File scanditi:   {scanned}',
-        f'File modificati: {len(changed_files)}',
+        f'Files scanned:   {scanned}',
+        f'Files modified:  {len(changed_files)}',
     ]
     for line in summary:
         print(line, file=sys.stderr)
