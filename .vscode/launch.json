@@ -1,0 +1,25 @@
+{
+    // Use IntelliSense to learn about possible attributes.
+    // Hover to view descriptions of existing attributes.
+    // For more information, visit: https://go.microsoft.com/fwlink/?linkid=830387
+    "version": "0.2.0",
+    "configurations": [
+        {
+            "name": "Python Debugger: Current File",
+            "type": "debugpy",
+            "request": "launch",
+            "program": "main.py",
+            "args": [
+                "C:\\dev\\nxp\\srcs\\RT685_IW611_A2DP_HFP_MIDLAND\\Rt685_Conversa_McuPrg",
+                "--dry-run",
+                "--only", "PRINTF",
+                "--ext", ".c",
+                "--ext", ".h",
+                "--to-lf",
+                "--verbose",
+                "--dry-run-output", "report.txt"
+            ],
+            "console": "integratedTerminal"
+        }
+    ]
+}
